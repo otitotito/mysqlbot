@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+  mysql-db:
+    image: mysql:latest
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: mpninfo
+      MYSQL_USER: otit
+      MYSQL_PASSWORD: pwd
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - my-network
+
+  mysql-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mysql-bot
+    ports:
+      - "21001:3000" # Menghubungkan port 2100 di host ke port 3000 di kontainer
+    volumes:
+      - .:/usr/src/mysql-bot
+      - /usr/src/mysql-bot/node_modules
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=mysql-db
+      - DB_USER=otit
+      - DB_PASSWORD=pwd
+      - DB_NAME=mpninfo
+    networks:
+      - my-network
+
+  apache-server:
+    image: php:apache
+    container_name: apache-server
+    ports:
+      - "80:80"
+      - "443:443" # Jika Anda memerlukan SSL
+    volumes:
+      - ./src:/var/www/html
+    networks:
+      - my-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    ports:
+      - "8001:80"
+    environment:
+      - PMA_HOST=mysql-db
+      - PMA_PORT=3306
+
+networks:
+  my-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
